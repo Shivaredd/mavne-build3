@@ -16,14 +16,16 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up JDK 11
+    - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
 
-    - name: Build with Maven
-      run: mvn clean install
+    - name: Set up Maven 3.9.2
+      uses: sormuras/maven-action@v2
+      with:
+        maven-version: '3.9.2'
 
     - name: Cache Maven dependencies
       uses: actions/cache@v3
@@ -33,26 +35,22 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
 
+    - name: Build with Maven
+      run: mvn clean install
+
     - name: Run tests
       run: mvn test -X
 
-    - name: Upload build artifacts
+    - name: Upload test results
+      if: always()
       uses: actions/upload-artifact@v3
       with:
-        name: maven-build
-        path: target/*.jar
+        name: test-results
+        path: target/surefire-reports
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
+    - name: Upload JAR file
+      if: success()
+      uses: actions/upload-artifact@v3
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
-
-    - name: Upload artifacts to S3
-      run: |
-        aws s3 cp target/*.jar s3://backend-test3/ --recursive
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
+        name: my-app-jar
+        path: target/my-app-1.0-SNAPSHOT.jar
